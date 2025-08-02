@@ -75,12 +75,12 @@ interface ProjectManagerProps {
   selectedProject: string | null
   onProjectSelect: (projectId: string | null) => void
   onProjectsUpdate: (projects: Project[]) => void
+  onPapersUpdate?: (papers: Paper[]) => void
+  onNotesUpdate?: (notes: Note[]) => void
   newProject: {
     title: string
     description: string
     author: "sungkwon" | "jimin"
-  onPapersUpdate: (papers: Paper[]) => void
-  onNotesUpdate: (notes: Note[]) => void
   }
   onNewProjectUpdate: (project: any) => void
 }
@@ -89,14 +89,62 @@ export default function ProjectManager({
   projects,
   papers,
   notes,
-  onPapersUpdate,
-  onNotesUpdate,
   selectedProject,
   onProjectSelect,
   onProjectsUpdate,
   newProject,
   onNewProjectUpdate,
+  onPapersUpdate,
+  onNotesUpdate
 }: ProjectManagerProps) {
+
+  // --- LocalStorage Persistence ---
+  // Load stored data into state on mount if arrays are empty
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    if (projects.length === 0) {
+      const stored = localStorage.getItem("projects")
+      if (stored) {
+        try {
+          onProjectsUpdate(JSON.parse(stored))
+        } catch {}
+      }
+    }
+    if (papers.length === 0 && onPapersUpdate) {
+      const storedPapers = localStorage.getItem("papers")
+      if (storedPapers) {
+        try {
+          onPapersUpdate(JSON.parse(storedPapers))
+        } catch {}
+      }
+    }
+    if (notes.length === 0 && onNotesUpdate) {
+      const storedNotes = localStorage.getItem("notes")
+      if (storedNotes) {
+        try {
+          onNotesUpdate(JSON.parse(storedNotes))
+        } catch {}
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist to localStorage whenever arrays change
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    localStorage.setItem("projects", JSON.stringify(projects))
+  }, [projects])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    localStorage.setItem("papers", JSON.stringify(papers))
+  }, [papers])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    localStorage.setItem("notes", JSON.stringify(notes))
+  }, [notes])
+
   const [draggedNode, setDraggedNode] = useState<string | null>(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
@@ -240,66 +288,6 @@ export default function ProjectManager({
     setShowNoteSelector(false)
   }
 
-  // Delete project by id
-  const deleteProject = (projectId: string) => {
-    if (!confirm("정말로 이 프로젝트를 삭제하시겠습니까?")) return;
-    const filtered = projects.filter((p) => p.id !== projectId);
-    onProjectsUpdate(filtered);
-    if (selectedProject === projectId) onProjectSelect(null);
-  };
-
-  // Delete paper by id
-  const deletePaper = (paperId: string) => {
-    if (!confirm("선택한 논문을 삭제하시겠습니까?")) return;
-    if (typeof onPapersUpdate !== "function") return;
-    onPapersUpdate(papers.filter((p) => p.id !== paperId));
-  };
-
-  // Delete note by id
-  const deleteNote = (noteId: string) => {
-    if (!confirm("선택한 아이디어 노트를 삭제하시겠습니까?")) return;
-    if (typeof onNotesUpdate !== "function") return;
-    onNotesUpdate(notes.filter((n) => n.id !== noteId));
-  };
-
-  // LocalStorage persistence hook
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem("projects", JSON.stringify(projects));
-  }, [projects]);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem("papers", JSON.stringify(papers));
-  }, [papers]);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem("notes", JSON.stringify(notes));
-  }, [notes]);
-
-  // Initialize from localStorage on mount if empty
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!projects.length) {
-      const stored = localStorage.getItem("projects");
-      if (stored) {
-        try { onProjectsUpdate(JSON.parse(stored)); } catch(err){}
-      }
-    }
-    if (!papers.length) {
-      const stored = localStorage.getItem("papers");
-      if (stored && typeof onPapersUpdate === "function") {
-        try { onPapersUpdate(JSON.parse(stored)); } catch(err){}
-      }
-    }
-    if (!notes.length) {
-      const stored = localStorage.getItem("notes");
-      if (stored && typeof onNotesUpdate === "function") {
-        try { onNotesUpdate(JSON.parse(stored)); } catch(err){}
-      }
-    }
-  }, []);
-
-
   const startEditingNode = (nodeId: string) => {
     const project = projects.find((p) => p.id === selectedProject)
     const node = project?.nodes.find((n) => n.id === nodeId)
@@ -358,6 +346,8 @@ export default function ProjectManager({
   }
 
   const deleteConnection = (from: string, to: string) => {
+    if (!window.confirm("정말 삭제하시겠습니까?")) return
+
     if (!selectedProject) return
 
     const project = projects.find((p) => p.id === selectedProject)
@@ -417,6 +407,8 @@ export default function ProjectManager({
   }
 
   const deleteNode = (nodeId: string) => {
+    if (!window.confirm("정말 삭제하시겠습니까?")) return
+
     if (!selectedProject) return
 
     const project = projects.find((p) => p.id === selectedProject)
@@ -430,6 +422,32 @@ export default function ProjectManager({
 
     onProjectsUpdate(projects.map((p) => (p.id === selectedProject ? updatedProject : p)))
   }
+
+  const deleteProject = (projectId: string) => {
+    if (!window.confirm("정말 삭제하시겠습니까?")) return
+
+    const filtered = projects.filter((p) => p.id !== projectId)
+    onProjectsUpdate(filtered)
+    if (selectedProject === projectId) onProjectSelect(null)
+  }
+
+  const deletePaper = (paperId: string) => {
+    if (!window.confirm("정말 삭제하시겠습니까?")) return
+
+    // papers array is managed by parent; emit update if handler provided
+    if (typeof onPapersUpdate === "function") {
+      onPapersUpdate(papers.filter((p) => p.id !== paperId))
+    }
+  }
+
+  const deleteNote = (noteId: string) => {
+    if (!window.confirm("정말 삭제하시겠습니까?")) return
+
+    if (typeof onNotesUpdate === "function") {
+      onNotesUpdate(notes.filter((n) => n.id !== noteId))
+    }
+  }
+
 
   const getNodeIcon = (type: string) => {
     switch (type) {
@@ -555,22 +573,19 @@ export default function ProjectManager({
                           <span className="text-gray-500 font-body">{project.date}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {selectedProject === project.id && (
-                          <Badge className="bg-purple-500 text-white">선택됨</Badge>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteProject(project.id);
-                          }}
-                        >
-                          <Trash className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      {selectedProject === project.id && <Badge className="bg-purple-500 text-white">선택됨</Badge>}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteProject(project.id);
+                        }}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+
                     </div>
                   </CardContent>
                 </Card>
@@ -669,25 +684,21 @@ export default function ProjectManager({
                           className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 hover:border-emerald-300"
                           onClick={() => addPaperNode(paper.id)}
                         >
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-start gap-3">
-                              <div>
-                                <h3 className="font-serif font-bold text-lg">{paper.title}</h3>
-                                <p className="text-gray-600 font-body mb-1">{paper.authors}</p>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deletePaper(paper.id);
-                                }}
-                              >
-                                <Trash className="h-3 w-3" />
-                              </Button>
-                            </div>
-                            <p className="text-gray-700 font-body text-sm mt-2">{paper.summary.substring(0, 150)}...</p>
+                          <CardContent className="p-4 flex justify-between items-start">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deletePaper(paper.id);
+                              }}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                            <h3 className="font-serif font-bold text-lg mb-2">{paper.title}</h3>
+                            <p className="text-gray-600 font-body mb-2">{paper.authors}</p>
+                            <p className="text-gray-700 font-body text-sm">{paper.summary.substring(0, 150)}...</p>
                           </CardContent>
                         </Card>
                       ))}
@@ -717,24 +728,22 @@ export default function ProjectManager({
                           className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 hover:border-orange-300"
                           onClick={() => addNoteNode(note.id)}
                         >
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-start gap-3">
-                              <div className="flex items-center gap-2">
-                                <Lightbulb className="h-5 w-5 text-orange-600" />
-                                <h3 className="font-serif font-bold text-lg">{note.title}</h3>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteNote(note.id);
-                                }}
-                              >
-                                <Trash className="h-3 w-3" />
-                              </Button>
-                            </div>
+                          <CardContent className="p-4 flex justify-between items-start">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNote(note.id);
+                              }}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                            <h3 className="font-serif font-bold text-lg mb-2 flex items-center gap-2">
+                              <Lightbulb className="h-5 w-5 text-orange-600" />
+                              {note.title}
+                            </h3>
                             <p className="text-gray-600 font-body mb-2">
                               작성자: {note.author === "sungkwon" ? "성권" : "지민"} • {note.date}
                             </p>
