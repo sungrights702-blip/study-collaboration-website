@@ -1,6 +1,6 @@
 "use client"
 
-import ProjectManager from "../../../components/ProjectManager";
+import ProjectManager from "../../components/ProjectManager";
 import { useState } from "react"
 
 export default function ProjectPage() {
