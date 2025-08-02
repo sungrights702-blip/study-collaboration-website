@@ -1,18 +1,18 @@
 "use client"
 
-import ProjectManager from "../../components/ProjectManager"
-import { useState } from "react"
+import ProjectManager from "../../components/ProjectManager";
+import { useState } from "react";
 
 export default function ProjectPage() {
-  const [projects, setProjects] = useState([])
-  const [papers, setPapers] = useState([])
-  const [notes, setNotes] = useState([])
-  const [selectedProject, setSelectedProject] = useState(null)
+  const [projects, setProjects] = useState([]);
+  const [papers, setPapers] = useState([]);
+  const [notes, setNotes] = useState([]);
+  const [selectedProject, setSelectedProject] = useState(null);
   const [newProject, setNewProject] = useState({
     title: "",
     description: "",
     author: "sungkwon",
-  })
+  });
 
   return (
     <ProjectManager
@@ -25,5 +25,5 @@ export default function ProjectPage() {
       newProject={newProject}
       onNewProjectUpdate={setNewProject}
     />
-  )
+  );
 }
