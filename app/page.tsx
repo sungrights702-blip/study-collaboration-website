@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Calendar } from "@/components/ui/calendar"
-import ProjectManager from "../components/project-manager"
+import ProjectManager from "../components/ProjectManager"
 import {
   FileText,
   CheckSquare,
